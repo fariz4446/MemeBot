@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>MemeBot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#0a0e16;--panel:#0f1520;--panel2:#141c2a;--line:#1c2638;--tx:#e6edf5;--mut:#7d8aa0;--g:#2ee6a6;--r:#ff5c6c;--y:#f5b942;--b:#4da3ff;--mono:ui-monospace,"JetBrains Mono",Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px Inter,system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line);background:#0a0e16ee;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.brand{font:800 15px var(--mono);letter-spacing:.14em}.badge{padding:3px 10px;border-radius:5px;font:700 11px var(--mono);letter-spacing:.06em}
+.badge.paper{background:#10294a;color:var(--b)}.badge.live{background:#4a1018;color:var(--r)}
+.dot{font:12px var(--mono);color:var(--mut)}.dot.on{color:var(--g)}
+.strip{font:12px var(--mono);color:#aeb9cc;white-space:nowrap;overflow:auto;max-width:100%}
+nav{display:flex;gap:4px}.tab{background:transparent;color:var(--mut);border:1px solid var(--line);padding:6px 12px;border-radius:6px;font:700 11px var(--mono);letter-spacing:.08em;cursor:pointer}
+.tab.on{color:var(--tx);background:var(--panel2);border-color:#2a3850}
+button{background:linear-gradient(135deg,#1fd69a,#14a37a);color:#02140e;border:0;padding:8px 16px;border-radius:7px;cursor:pointer;font-weight:700}
+button.sec{background:var(--panel2);color:var(--tx);border:1px solid var(--line)}button.red{background:linear-gradient(135deg,#ff5c6c,#d63a4a);color:#fff}
+button.sm{padding:3px 10px;font-size:12px}button.sell{background:#2a1119;color:#ff8a96;border:1px solid #5a2431}
+main{padding:14px 18px;max-width:1700px;margin:auto}[hidden]{display:none!important}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.kpi span{color:var(--mut);font:10px var(--mono);letter-spacing:.1em}.kpi b{display:block;font:700 21px var(--mono);margin-top:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);gap:10px}
+.ph h2{margin:0;font:700 11px var(--mono);letter-spacing:.1em;color:#b9c4d6}.ph em{color:var(--mut);font-style:normal;font-size:12px}
+.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{text-align:left;padding:8px 14px;border-bottom:1px solid var(--line);font:12px var(--mono);white-space:nowrap}th{color:var(--mut);font-weight:500}
+tr:last-child td{border-bottom:0}tr.match td{background:#0e2a22;color:#3dffb4}.pos{color:var(--g)}.neg{color:var(--r)}.tok{color:var(--b);text-decoration:none}
+.two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}@media(max-width:1100px){.two{grid-template-columns:1fr}}
+.maxh{max-height:330px;overflow:auto}.log{font:12px var(--mono);max-height:260px;overflow:auto;color:#aab6c9;padding:10px 14px}.log div{padding:2px 0}
+.empty{color:var(--mut);padding:14px;font:12px var(--mono)}.note{color:var(--mut);font-size:11px;line-height:1.5}
+.sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}@media(max-width:1000px){.sgrid{grid-template-columns:1fr}}
+.grp{padding:4px 14px 12px}.grp h3{margin:14px 0 4px;font:700 10px var(--mono);letter-spacing:.12em;color:var(--g)}
+label{display:block;margin:8px 0 3px;color:var(--mut);font-size:11px}
+input,select{width:100%;padding:7px 9px;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:6px;font-size:13px}
+input:focus,select:focus{outline:1px solid var(--g)}input[type=checkbox]{width:auto;margin-right:6px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;align-items:center}
+.warn{background:#2b1f0a;border:1px solid #5a4416;color:#f5c96a;padding:8px 12px;border-radius:6px;margin:10px 14px;font-size:12px;line-height:1.5}
+.bad{background:#2b0f14;border-color:#5a1c26;color:#ff9aa6}
+</style></head><body>
+<header>
+ <span class="brand">MEMEBOT</span><span id="mode" class="badge paper">DEMO</span><span id="run" class="dot">&#9679; stopped</span>
+ <span id="strip" class="strip"></span><span style="flex:1"></span>
+ <nav><button class="tab on" data-t="sniper">SNIPER</button><button class="tab" data-t="scanner">SCANNER</button><button class="tab" data-t="settings">SETTINGS</button></nav>
+ <button id="toggle">Start bot</button>
+</header>
+<main>
+<!-- ================= SNIPER ================= -->
+<section id="t_sniper">
+ <div id="s_halt" class="warn bad" hidden>Sniper HALTED after a losing streak. <button class="sm" onclick="api('/api/launch_resume').then(refresh)">Resume</button></div>
+ <div class="kpis">
+  <div class="kpi"><span id="k1l">PAPER BALANCE</span><b id="k1">-</b></div>
+  <div class="kpi"><span id="k2l">EQUITY (INCL. OPEN)</span><b id="k2">-</b></div>
+  <div class="kpi"><span id="k3l">P/L VS START</span><b id="k3">-</b></div>
+  <div class="kpi"><span>OPEN POSITIONS</span><b id="k4">-</b></div>
+  <div class="kpi"><span>CLOSED TRADES</span><b id="k5">-</b></div>
+  <div class="kpi"><span>WIN RATE</span><b id="k6">-</b></div>
+  <div class="kpi"><span>LOSS STREAK</span><b id="k7">-</b></div>
+ </div>
+ <div class="panel"><div class="ph"><h2>OPEN POSITIONS (LIVE FEED)</h2><span><em id="s_conn"></em> <button class="sell sm" onclick="sellAll()">Sell all</button></span></div>
+  <div class="scroll"><table><thead><tr><th>Token</th><th>Mode</th><th>Entry mcap</th><th>Now</th><th>PnL</th><th>P/L</th><th>Age</th><th>Chart</th><th></th></tr></thead><tbody id="s_pos"></tbody></table></div></div>
+ <div class="panel"><div class="ph"><h2 id="s_wtitle">WATCHING</h2></div><div class="scroll"><table><thead><tr><th>Token</th><th>Age</th><th>Buyers</th><th>Net buy (SOL)</th><th>Mcap</th><th>Mcap gain</th></tr></thead><tbody id="s_watch"></tbody></table></div></div>
+ <div class="two">
+  <div class="panel"><div class="ph"><h2>NEW LAUNCHES &amp; DECISIONS</h2><em id="s_skips"></em></div><div class="maxh scroll"><table><thead><tr><th>Time</th><th>Token</th><th>Mcap</th><th>Dev buy</th><th>Decision</th></tr></thead><tbody id="s_dec"></tbody></table></div></div>
+  <div class="panel"><div class="ph"><h2>CLOSED TRADES</h2></div><div class="maxh scroll"><table><thead><tr><th>Time</th><th>Token</th><th>PnL</th><th>P/L</th><th>Reason</th></tr></thead><tbody id="s_hist"></tbody></table></div></div>
+ </div>
+ <div class="panel"><div class="ph"><h2>BOT LOG</h2></div><div class="log" id="s_log"></div></div>
+</section>
+<!-- ================= SCANNER ================= -->
+<section id="t_scanner" hidden>
+ <div class="kpis">
+  <div class="kpi"><span id="ballbl">PAPER BALANCE (SOL)</span><b id="bal">-</b></div>
+  <div class="kpi"><span>REALIZED P&amp;L (SOL)</span><b id="rpnl">-</b></div>
+  <div class="kpi"><span>WIN RATE</span><b id="wr">-</b></div>
+  <div class="kpi"><span>CLOSED TRADES</span><b id="nt">-</b></div>
+  <div class="kpi"><span>OPEN POSITIONS</span><b id="np">-</b></div>
+ </div>
+ <div class="panel"><div class="ph"><h2>DEX SCANNER - LAST SCAN</h2><em id="scanmeta">waiting...</em></div><div class="scroll"><table><thead><tr><th>Token</th><th>Liquidity</th><th>24h vol</th><th>Mcap</th><th>Age</th><th>Result</th></tr></thead><tbody id="scan"></tbody></table></div></div>
+ <div class="panel"><div class="ph"><h2>OPEN POSITIONS</h2></div><div class="scroll"><table><thead><tr><th>Token</th><th>Mode</th><th>Entry SOL</th><th>Value SOL</th><th>P&amp;L</th><th></th></tr></thead><tbody id="pos"></tbody></table></div></div>
+ <div class="panel"><div class="ph"><h2>TRADE HISTORY</h2></div><div class="scroll"><table><thead><tr><th>Token</th><th>Mode</th><th>Exit reason</th><th>P&amp;L SOL</th><th>Closed</th></tr></thead><tbody id="hist"></tbody></table></div></div>
+ <div class="panel"><div class="ph"><h2>ENGINE LOG</h2></div><div class="log" id="log"></div></div>
+</section>
+<!-- ================= SETTINGS ================= -->
+<section id="t_settings" hidden>
+ <div class="panel"><div class="bar"><button id="save">Save settings</button><button class="sec" id="wtest">Test wallet (scanner live)</button><button class="sec" id="ktest">Check PumpDev key</button><button class="sec sm" id="reset">Reset paper account</button><span class="note" id="wmsg"></span></div></div>
+ <div class="sgrid">
+  <div class="panel"><div class="ph"><h2>PUMP.FUN SNIPER</h2></div>
+   <div class="bar" style="padding-bottom:0"><span class="note" style="width:100%">Presets from your pumpbot (then press Save):</span>
+    <button class="sec sm" onclick="preset('sniper')">Sniper</button><button class="sec sm" onclick="preset('sniper2')">Sniper + changes</button><button class="sec sm" onclick="preset('momentum')">Momentum</button></div>
+   <div id="keybox" class="warn" style="margin-top:12px"></div><div id="formS"></div></div>
+  <div class="panel"><div class="ph"><h2>DEX SCANNER (DexScreener + Jupiter)</h2></div><div id="formC"></div>
+   <div class="warn">Private keys are never stored. Only file paths are saved. This dashboard is reachable from this PC only.</div></div>
+ </div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const L={
+ launch_enabled:["Enable Pump.fun sniper","bool"],launch_mode:["Mode","lmode"],launch_env_path:["Path to your pumpbot.env (PumpDev key). Blank = AppData\\MemeBot\\pumpdev.env","txt"],launch_max_total_spend_sol:["LIVE: max total SOL to spend (0 = off)","num"],sol_usd:["SOL price in USD (0 = live)","num"],
+ launch_strategy:["Strategy","strat"],launch_buy_sol:["Buy amount (SOL)","num"],launch_max_positions:["Max open positions","num"],launch_max_consec_losses:["Halt after N losses in a row (0 = off)","num"],launch_yolo_mode:["Yolo mode (off = one token only)","bool"],launch_max_slippage_pct:["Slippage % (live) / skip if price ran away % (demo)","num"],launch_tip_sol:["Priority fee per trade (SOL)","num"],
+ launch_exit_strategy:["Exit strategy","exit"],launch_take_profit_pct:["Take profit % (0 = off)","num"],launch_stop_loss_pct:["Stop loss % (0 = off)","num"],launch_max_hold_sec:["Max hold time (sec, 0 = none)","num"],launch_trail_start_x:["Trail starts at (x of entry)","num"],launch_trail_pct:["Trail % (0 = off)","num"],launch_stall_sec:["Stall exit after (sec, 0 = off)","num"],launch_stall_min_x:["Stall min multiple (x)","num"],launch_exit_on_dev_sell:["Exit if dev sells","bool"],launch_marry_mode:["Marry mode (never auto-sell)","bool"],
+ launch_max_mcap_sol:["Snipe: max market cap (SOL)","num"],launch_min_dev_buy_sol:["Min dev buy (SOL)","num"],launch_max_dev_buy_sol:["Max dev buy (SOL, 0 = off)","num"],launch_match_string:["Only tokens matching text (blank = all)","txt"],launch_creator_address:["Only this creator (blank = all)","txt"],launch_max_token_age_sec:["Max token age (sec, 0 = off)","num"],
+ launch_watch_sec:["Momentum: watch time (sec)","num"],launch_max_watch:["Momentum: max tokens watched","num"],launch_min_buyers:["Momentum: min buyers","num"],launch_min_net_buy_sol:["Momentum: min net buy (SOL)","num"],launch_min_mcap_gain_pct:["Momentum: min mcap gain %","num"],launch_max_entry_mcap_sol:["Momentum: max entry mcap (SOL)","num"],launch_max_sell_ratio:["Momentum: max sell/buy ratio","num"],
+ launch_commission_pct:["Commission per side %","num"],launch_extra_impact_pct:["Price impact per side %","num"],launch_curve_fee_pct:["Pump.fun curve fee % (0 = match pumpbot paper)","num"],launch_latency_ms:["Fill delay (ms, 0 = none)","num"],launch_fail_pct:["Failed buys %","num"],launch_sell_fail_pct:["Failed sells %","num"],
+ scanner_enabled:["Enable DEX scanner bot","bool"],mode:["Scanner mode","sel"],buy_amount_sol:["Buy amount (SOL)","num"],slippage_bps:["Max slippage (bps, 100 = 1%)","num"],max_open_positions:["Max open positions","num"],safety_cap_sol:["Hard cap per trade (SOL)","num"],priority_fee_lamports:["Priority fee (lamports)","num"],
+ min_liquidity_usd:["Min liquidity (USD)","num"],min_volume_usd:["Min 24h volume (USD)","num"],max_market_cap_usd:["Max market cap (USD)","num"],min_age_minutes:["Min token age (min)","num"],max_age_hours:["Max token age (hours)","num"],rug_check:["Honeypot / rug check (RugCheck)","bool"],
+ take_profit_pct:["Take profit % (0 = off)","num"],stop_loss_pct:["Stop loss % (0 = off)","num"],trailing_stop_pct:["Trailing stop % (0 = off)","num"],
+ scan_interval_sec:["Scan interval (sec, min 5)","num"],paper_start_balance_sol:["Paper start balance (SOL)","num"],rpc_url:["Solana RPC URL","txt"],keypair_path:["Keypair file path (scanner live only)","txt"]};
+const GS=[["MODE & KEY",["launch_enabled","launch_mode","launch_env_path","launch_max_total_spend_sol","sol_usd"]],["TRADE",["launch_strategy","launch_buy_sol","launch_max_positions","launch_max_consec_losses","launch_yolo_mode","launch_max_slippage_pct","launch_tip_sol"]],["EXITS",["launch_exit_strategy","launch_take_profit_pct","launch_stop_loss_pct","launch_max_hold_sec","launch_trail_start_x","launch_trail_pct","launch_stall_sec","launch_stall_min_x","launch_exit_on_dev_sell","launch_marry_mode"]],["ENTRY FILTERS",["launch_max_mcap_sol","launch_min_dev_buy_sol","launch_max_dev_buy_sol","launch_match_string","launch_creator_address","launch_max_token_age_sec"]],["MOMENTUM STRATEGY",["launch_watch_sec","launch_max_watch","launch_min_buyers","launch_min_net_buy_sol","launch_min_mcap_gain_pct","launch_max_entry_mcap_sol","launch_max_sell_ratio"]],["DEMO COSTS (demo mode only)",["launch_commission_pct","launch_extra_impact_pct","launch_curve_fee_pct","launch_latency_ms","launch_fail_pct","launch_sell_fail_pct"]]];
+const GC=[["TRADE",["scanner_enabled","mode","buy_amount_sol","slippage_bps","max_open_positions","safety_cap_sol","priority_fee_lamports"]],["TOKEN FILTERS",["min_liquidity_usd","min_volume_usd","max_market_cap_usd","min_age_minutes","max_age_hours","rug_check"]],["EXITS",["take_profit_pct","stop_loss_pct","trailing_stop_pct"]],["BOT & WALLET",["scan_interval_sec","paper_start_balance_sol","rpc_url","keypair_path"]]];
+const SN={launch_strategy:"snipe",launch_buy_sol:0.1,launch_exit_strategy:"tp_sl",launch_take_profit_pct:50,launch_stop_loss_pct:20,launch_max_hold_sec:60,launch_trail_start_x:1.25,launch_trail_pct:0,launch_stall_sec:0,launch_stall_min_x:1.1,launch_exit_on_dev_sell:false,launch_marry_mode:false,launch_yolo_mode:true,launch_match_string:"",launch_creator_address:"",launch_max_token_age_sec:0,launch_max_mcap_sol:50,launch_min_dev_buy_sol:0.5,launch_max_dev_buy_sol:5,launch_watch_sec:45,launch_max_watch:30,launch_min_buyers:5,launch_min_net_buy_sol:2,launch_min_mcap_gain_pct:10,launch_max_entry_mcap_sol:70,launch_max_sell_ratio:0.35,launch_max_positions:3,launch_max_consec_losses:8,launch_tip_sol:0.0005,launch_commission_pct:0.25,launch_extra_impact_pct:2,launch_max_slippage_pct:30};
+const PRE={sniper:SN,sniper2:{...SN,launch_max_positions:10,launch_stall_sec:20,launch_max_consec_losses:30},momentum:{...SN,launch_strategy:"momentum",launch_take_profit_pct:200,launch_stop_loss_pct:20,launch_max_hold_sec:180,launch_trail_pct:20,launch_stall_sec:60}};
+let cfg=null,built=false,running=false,S=null;
+function fld(k){const[l,ty]=L[k];
+ if(ty=="sel")return `<label>${l}</label><select id="f_${k}"><option value="paper">Paper (simulated, real quotes)</option><option value="live">Live (real money)</option></select>`;
+ if(ty=="lmode")return `<label>${l}</label><select id="f_${k}"><option value="paper">DEMO (simulated fills, no money)</option><option value="live">LIVE (real trades via PumpDev)</option></select>`;
+ if(ty=="strat")return `<label>${l}</label><select id="f_${k}"><option value="snipe">Snipe (buy at launch)</option><option value="momentum">Momentum (watch first)</option></select>`;
+ if(ty=="exit")return `<label>${l}</label><select id="f_${k}"><option value="tp_sl">tp_sl (TP / SL / timeout)</option><option value="time_based">time_based (timeout only)</option><option value="manual">manual (never auto-sell)</option></select>`;
+ if(ty=="bool")return `<label><input type="checkbox" id="f_${k}">${l}</label>`;
+ return `<label>${l}</label><input id="f_${k}" type="${ty=="num"?"number":"text"}" step="any">`}
+const grp=G=>`<div class="grp">`+G.map(([t,ks])=>`<h3>${t}</h3>`+ks.map(fld).join("")).join("")+`</div>`;
+function build(c){$("formS").innerHTML=grp(GS);$("formC").innerHTML=grp(GC);Object.keys(L).forEach(k=>{const e=$("f_"+k);if(L[k][1]=="bool")e.checked=c[k];else e.value=c[k]});built=true}
+function preset(n){if(!built)return;Object.entries(PRE[n]).forEach(([k,x])=>{const e=$("f_"+k);if(!e)return;if(L[k][1]=="bool")e.checked=x;else e.value=x});$("wmsg").textContent="Preset loaded - press Save settings to apply it."}
+async function api(p,b){const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})});return r.json()}
+$("save").onclick=async()=>{const p={};Object.keys(L).forEach(k=>{const e=$("f_"+k);p[k]=L[k][1]=="bool"?e.checked:e.value});
+ if(p.mode=="live"&&!cfg.live_acknowledged){const t=prompt("SCANNER LIVE MODE spends real SOL and can lose all of it. Memecoins are extremely risky.\nType I UNDERSTAND to enable.");
+  if(t!=="I UNDERSTAND"){p.mode="paper";$("f_mode").value="paper"}else p.live_acknowledged=true}
+ if(p.launch_mode=="live"&&cfg.launch_mode!="live"){const t=prompt("SNIPER LIVE MODE places REAL trades with your PumpDev wallet. Launch tokens often go to zero within seconds and you can lose everything you put in.\nType I UNDERSTAND to enable.");
+  if(t!=="I UNDERSTAND"){p.launch_mode="paper";$("f_launch_mode").value="paper"}else p.launch_live_ack=true}
+ await api("/api/config",p);built=false;await refresh();$("wmsg").textContent="Saved."};
+$("toggle").onclick=async()=>{if(!running&&S&&S.cfg.launch_enabled&&S.cfg.launch_mode=="live"&&!confirm("Start in LIVE mode? The sniper will place real trades."))return;await api(running?"/api/stop":"/api/start");refresh()};
+$("reset").onclick=async()=>{if(confirm("Reset paper balance, positions and history?")){await api("/api/reset_paper");refresh()}};
+$("wtest").onclick=async()=>{const r=await api("/api/test_wallet");$("wmsg").textContent=r.ok?`Wallet ${r.address} - ${r.balance==null?"balance n/a":r.balance.toFixed(4)+" SOL"}`:"Error: "+r.error};
+$("ktest").onclick=async()=>{const r=await api("/api/test_key");$("wmsg").textContent=r.found?`Key found: ${r.masked} (in ${r.path})`:`No key found in ${r.path}`};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x==b));["sniper","scanner","settings"].forEach(t=>$("t_"+t).hidden=(t!=b.dataset.t))});
+async function closePos(m){if(confirm("Close this position now?")){await api("/api/close",{mint:m});refresh()}}
+async function sellAll(){if(confirm("Sell ALL open sniper positions now?")){await api("/api/launch_sell_all");refresh()}}
+const esc=s=>String(s).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+const f=(n,d=4)=>(n>=0?"+":"")+n.toFixed(d),cl=n=>n>=0?"pos":"neg";
+const k=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"K":Math.round(n);
+const lk=(sym,m)=>`<a class="tok" href="https://dexscreener.com/solana/${encodeURIComponent(m)}" target="_blank" rel="noopener noreferrer">${esc(sym)}</a>`;
+function money(sol,usd){return usd>0?"$"+(sol*usd).toFixed(2):sol.toFixed(3)+" SOL"}
+function smoney(sol,usd){return usd>0?(sol>=0?"+$":"-$")+Math.abs(sol*usd).toFixed(2):f(sol,4)+" SOL"}
+function spark(h){if(!h||h.length<2)return"";const w=140,ht=34,mn=Math.min(0,...h),mx=Math.max(0,...h),r=(mx-mn)||1;
+ const y=v=>(ht-3-((v-mn)/r)*(ht-6)).toFixed(1),pts=h.map((v,i)=>(i/(h.length-1)*w).toFixed(1)+","+y(v)).join(" "),c=h[h.length-1]>=0?"#2ee6a6":"#ff5c6c";
+ return `<svg width="${w}" height="${ht}"><line x1="0" x2="${w}" y1="${y(0)}" y2="${y(0)}" stroke="#2a3850" stroke-dasharray="3 3"/><polyline fill="none" stroke="${c}" stroke-width="1.6" points="${pts}"/></svg>`}
+const tm=ts=>new Date(ts*1000).toLocaleTimeString([],{hour12:false});
+async function refresh(){let s;try{s=await (await fetch("/api/state")).json()}catch(e){return}
+ S=s;cfg=s.cfg;running=s.running;if(!built)build(cfg);
+ const sn=s.sniper,ln=s.launch,usd=s.sol_usd,live=cfg.launch_mode=="live";
+ $("mode").textContent=live?"LIVE":"DEMO";$("mode").className="badge "+(live?"live":"paper");
+ $("run").textContent="\u25CF "+(running?"running":"stopped");$("run").className="dot"+(running?" on":"");
+ $("toggle").textContent=running?"Stop bot":"Start bot";$("toggle").className=running?"red":"";
+ $("strip").textContent=[live?"live":"demo",cfg.launch_strategy,"SOL "+(usd?"$"+usd.toFixed(2):"-"),"buy "+cfg.launch_buy_sol+" SOL","exit "+cfg.launch_exit_strategy,"TP "+(1+cfg.launch_take_profit_pct/100).toFixed(2)+"x","SL "+(1-cfg.launch_stop_loss_pct/100).toFixed(2)+"x","hold "+cfg.launch_max_hold_sec+"s","mcap\u2264"+cfg.launch_max_mcap_sol,"dev\u2265"+cfg.launch_min_dev_buy_sol].join("  |  ");
+ // key box
+ const ki=ln.key;$("keybox").className="warn"+(ki.found?"":" bad");
+ $("keybox").innerHTML=ki.found?`PumpDev key found: <b>${esc(ki.masked)}</b><br><span class="note">${esc(ki.path)}</span>`:`No PumpDev key found in <b>${esc(ki.path)}</b>. Demo mode works without it. For LIVE, point the path below at your pumpbot.env (the Lightning key starts with pk_).`;
+ // sniper KPIs
+ const st=sn.stats;
+ if(live){$("k1l").textContent="LIVE SPENT (SOL)";$("k1").textContent=ln.live_spent.toFixed(3)+(cfg.launch_max_total_spend_sol?" / "+cfg.launch_max_total_spend_sol:"");
+  $("k2l").textContent="WALLET";$("k2").textContent="see pumpdev.io";$("k3l").textContent="REALIZED P/L (EST.)";$("k3").textContent=smoney(st.live_realized_sol,usd);$("k3").className=cl(st.live_realized_sol)}
+ else{const eq=sn.equity_sol,pl=eq-sn.start_sol;$("k1l").textContent="PAPER BALANCE";$("k1").textContent=money(s.paper_balance,usd);$("k2l").textContent="EQUITY (INCL. OPEN)";$("k2").textContent=money(eq,usd);
+  $("k3l").textContent="P/L VS START";$("k3").textContent=smoney(pl,usd)+" ("+f(pl/sn.start_sol*100,1)+"%)";$("k3").className=cl(pl)}
+ $("k4").textContent=sn.positions.length+" / "+cfg.launch_max_positions;$("k5").textContent=st.trades;$("k6").textContent=st.trades?st.win_rate.toFixed(0)+"%":"-";
+ $("k7").textContent=ln.consec+(cfg.launch_max_consec_losses?" / "+cfg.launch_max_consec_losses:"");$("s_halt").hidden=!ln.halted;
+ $("s_conn").textContent=(ln.connected?"feed connected":"feed offline")+" \u00b7 seen "+(ln.stats.seen||0)+" \u00b7 bought "+(ln.stats.bought||0)+" \u00b7 failed "+(ln.stats.failed_fills||0);
+ $("s_pos").innerHTML=sn.positions.map(p=>`<tr><td>${lk(p.symbol,p.mint)}</td><td>${p.mode=="live"?"LIVE":"demo"}${p.stuck?" <span class=neg>STUCK</span>":""}</td><td>${p.entry_mcap?p.entry_mcap.toFixed(1):"-"}</td><td>${p.mcap_now?p.mcap_now.toFixed(1):"-"}</td><td class="${cl(p.pnl_pct)}">${f(p.pnl_pct,1)}%</td><td class="${cl(p.pnl_sol)}">${smoney(p.pnl_sol,usd)}</td><td>${Math.round(p.age)}s</td><td>${spark(p.hist)}</td><td><button class="sell sm" onclick="closePos('${p.mint}')">Sell</button></td></tr>`).join("")||`<tr><td colspan=9 class="empty">No open positions</td></tr>`;
+ $("s_wtitle").textContent="WATCHING"+(cfg.launch_strategy=="snipe"?" (NOT USED BY THE SNIPE STRATEGY)":" (MOMENTUM)");
+ $("s_watch").innerHTML=ln.watching.map(w=>`<tr><td>${esc(w.sym)}</td><td>${Math.round(w.age)}s</td><td>${w.buyers}</td><td>${w.net.toFixed(2)}</td><td>${w.mcap.toFixed(1)}</td><td class="${cl(w.gain)}">${f(w.gain,1)}%</td></tr>`).join("")||`<tr><td colspan=6 class="empty">Nothing being watched right now.</td></tr>`;
+ $("s_dec").innerHTML=ln.decisions.map(d=>`<tr class="${d.d=="MATCH"?"match":""}"><td>${d.t}</td><td>${esc(d.sym)}</td><td>${d.mcap.toFixed(1)}</td><td>${d.dev.toFixed(2)}</td><td>${esc(d.d)}</td></tr>`).join("")||`<tr><td colspan=5 class="empty">Waiting for launches - enable the sniper and press Start.</td></tr>`;
+ $("s_skips").textContent=Object.entries(ln.skips).map(([a,b])=>a+" "+b).slice(0,4).join(" \u00b7 ");
+ $("s_hist").innerHTML=sn.history.map(h=>{const pc=h.pnl_sol/h.entry_sol*100;return `<tr><td>${tm(h.closed_at)}</td><td>${lk(h.symbol,h.mint)}${h.mode=="launch-live"?" (live)":""}</td><td class="${cl(pc)}">${f(pc,1)}%</td><td class="${cl(h.pnl_sol)}">${smoney(h.pnl_sol,usd)}</td><td>${esc(h.reason)}</td></tr>`}).join("")||`<tr><td colspan=5 class="empty">No closed trades yet</td></tr>`;
+ $("s_log").innerHTML=ln.events.map(e=>`<div>${e.t}  ${esc(e.m)}</div>`).join("")||"<div>No sniper activity yet</div>";
+ // scanner tab
+ const lv=cfg.mode=="live",b=lv?s.live_balance:s.paper_balance;
+ $("ballbl").textContent=(lv?"WALLET":"PAPER")+" BALANCE (SOL)";$("bal").textContent=b==null?"-":b.toFixed(3);
+ $("rpnl").textContent=f(s.stats.realized_sol);$("rpnl").className=cl(s.stats.realized_sol);
+ $("wr").textContent=s.stats.win_rate.toFixed(0)+"%";$("nt").textContent=s.stats.trades;$("np").textContent=s.positions.length+" / "+cfg.max_open_positions;
+ const sc=s.scan||{t:null,checked:0,bought:0,rows:[]};$("scanmeta").textContent=sc.t?`${sc.t} \u00b7 ${sc.checked} checked \u00b7 ${sc.bought} bought`:"waiting for first scan...";
+ const pill=v=>`<span style="color:${v=="BOUGHT"?"var(--g)":v.startsWith("rug")?"var(--r)":"var(--y)"}">${esc(v)}</span>`;
+ $("scan").innerHTML=sc.rows.map(r=>`<tr><td>${lk(r.symbol,r.mint)}</td><td>$${k(r.liq)}</td><td>$${k(r.vol)}</td><td>${r.mc?"$"+k(r.mc):"-"}</td><td>${r.age_min==null?"-":r.age_min<120?Math.round(r.age_min)+"m":(r.age_min/60).toFixed(1)+"h"}</td><td>${pill(r.verdict)}</td></tr>`).join("")||`<tr><td colspan=6 class="empty">No tokens scanned yet.</td></tr>`;
+ $("pos").innerHTML=s.positions.map(p=>`<tr><td>${lk(p.symbol,p.mint)}</td><td>${p.mode}</td><td>${p.entry_sol}</td><td>${p.value_sol.toFixed(4)}</td><td class="${cl(p.pnl_pct)}">${f(p.pnl_pct,1)}%</td><td><button class="sell sm" onclick="closePos('${p.mint}')">Close</button></td></tr>`).join("")||`<tr><td colspan=6 class="empty">No open positions</td></tr>`;
+ $("hist").innerHTML=s.history.map(h=>`<tr><td>${lk(h.symbol,h.mint)}</td><td>${h.mode}</td><td>${esc(h.reason)}</td><td class="${cl(h.pnl_sol)}">${f(h.pnl_sol)}</td><td>${tm(h.closed_at)}</td></tr>`).join("")||`<tr><td colspan=5 class="empty">No closed trades yet</td></tr>`;
+ $("log").innerHTML=s.logs.map(l=>`<div>${l.t}  ${esc(l.m)}</div>`).join("")}
+refresh();setInterval(refresh,2000);
+</script></body></html>
