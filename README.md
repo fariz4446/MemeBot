@@ -5,7 +5,7 @@ It has two engines, a **Pump.fun launch sniper** and a **DexScreener/Jupiter sca
 Both default to simulated trading. Nothing is hosted, there are no accounts or subscriptions, and
 the dashboard is only reachable from the PC it runs on.
 
-![Dashboard](docs/dashboard-preview.png)
+https://github.com/fariz4446/MemeBot/blob/main/dashboard-preview.png
 
 > **Not financial advice. Meme coins are extremely risky, and most launch tokens go to zero within minutes.**
 > Demo (paper) results are always more optimistic than real trading: they cannot fully model
